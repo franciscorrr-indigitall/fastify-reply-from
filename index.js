@@ -56,15 +56,22 @@ module.exports = fp(function from (fastify, opts, next) {
         throw new Error('sending a new body as a stream is not supported yet')
       }
 
+      headers['content-type'] = opts.contentType
+
       if (opts.contentType) {
-        body = opts.body
+        const bodyOpts = opts.body(this.request.body)
+        if (bodyOpts && bodyOpts.body) {
+          body = bodyOpts.body
+        }
+        if (bodyOpts && bodyOpts.headers) {
+          headers = { ...headers, ...bodyOpts.headers }
+        }
       } else {
-        body = JSON.stringify(opts.body)
-        opts.contentType = 'application/json'
+        body = JSON.stringify(opts.body(this.request.body))
+        headers['content-type'] = 'application/json'
       }
 
       headers['content-length'] = Buffer.byteLength(body)
-      headers['content-type'] = opts.contentType
     } else if (this.request.body) {
       if (this.request.body instanceof Stream) {
         body = this.request.body
